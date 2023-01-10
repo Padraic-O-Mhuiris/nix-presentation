@@ -1,0 +1,161 @@
+#+title: Nix
+#+author: Patrick Morris
+#+OPTIONS: toc:nil
+#+REVEAL_MAX_SCALE: 0.8
+#+REVEAL_MARGIN: 0.1
+
+* What is Nix?
+#+ATTR_HTML: :width 500
+[[file:images/nix_logo.svg]]
+
+** Nix is a "universal" package manager
+- Similar to apt/brew/dpkg
+- Can be used on any "Unix-Like" operating system, e.g Mac and Linux
+- Also comes in it's own flavour - NixOS
+
+** Nix is a build system language
+- Not a very useful language in the traditional sense
+- Declaritive, functional and pure/hermetic
+- Takes no inputs, only outputs are *derivations* (build instructions)
+
+#+begin_src nix
+with import <nixpkgs> {};
+stdenv.mkDerivation {
+  name = "hello";
+  src = ./src;
+  buildInputs = [ coreutils gcc ];
+  configurePhase = ''
+    declare -xp
+  '';
+  buildPhase = ''
+    gcc "$src/hello.c" -o ./hello
+  '';
+  installPhase = ''
+    mkdir -p "$out/bin"
+    cp ./hello "$out/bin/"
+  '';
+}
+#+end_src
+
+** Nix tooling
+- Comes with a collection of cli-tools
+- ~nix build | nix-build~
+- ~nix develop | nix-shell~
+- ~nix-env~
+- ~nix run~
+
+Not important to know for the presentation
+
+** Nix package registry
+- Huge global store of packages
+- All managed in a single git repo
+- [[https://github.com/NixOS/nixpkgs][GitHub - NixOS/nixpkgs: Nix Packages collection]]
+    - nixos-22.11 :: Latest stable, akin to Ubuntu LTS
+    - nixos-unstable :: Snapshots of master branch, usually on a daily basis
+    - master :: Rolling-update newest versions of packages
+
+* Purpose of this talk
+
+I strongly believe that either Nix itself or it's ideas are the future of how software will be built, developed and distributed
+
+* Nix Philosophy & Concepts
+
+#+begin_quote
+Everything on your computer implicity depends on a bunch of other things on your computer
+#+end_quote
+
+** Core idea
+- All software is a graph of dependencies
+- This graph is mostly implicit
+- Nix makes this graph explicit
+
+** Graph of dependencies for the git
+#+ATTR_HTML: :width 100%
+[[file:images/nix_dependency_graph.svg]]
+
+** Hermeticity in building software
+
+- Means the state of being airtight or gastight
+- This is the golden rule in how Nix builds software
+- There are some exceptions (network access, hardware)
+- Every package is de-facto built in an isolated environment
+
+** How is hermeticity achieved?
+
+Here is the list of direct dependencies for git
+
+#+begin_src
+/nix/store/9xfad3b5z4y00mzmk2wnn4900q0qmxns-glibc-2.35-224
+/nix/store/f1n473kbcxxr38f7amwf4sxyi56mfczh-expat-2.5.0
+/nix/store/fblaj5ywkgphzpp5kx41av32kls9256y-zlib-1.2.13
+/nix/store/wim4mqpn8lxhhr10p2kd070hyj152lil-bash-5.1-p16
+/nix/store/65cp4izx3bllnwqn7c7dhrq9h9gmjkal-python3-3.10.9
+/nix/store/88k0f4k4hb13mjqm1xc0sysjysrrw813-gzip-1.12
+/nix/store/8n4g9jl8s2v8sla6gffa03gy1gkk1pqm-perl5.36.0-URI-5.05
+/nix/store/a19azdhwnvmksbpfz0crb4d1l9l19b2d-git-2.38.1-doc
+/nix/store/ncwm1bgg4x4k7ixjni5bxj3v7b2x5lyb-perl5.36.0-FCGI-0.79
+/nix/store/k32xzhjqyvgmjnkckvk2h3gbjpdb3hfl-perl5.36.0-HTML-Parser-3.75
+/nix/store/w2gxv2p9831ypflpk61l7sjzi8j05agj-perl5.36.0-CGI-4.51
+/nix/store/a509h53d4vki546clzig63kh6h4qyps4-perl5.36.0-CGI-Fast-2.15
+/nix/store/bprhh8afhvz27b051y8j451fyp6mkk38-openssl-3.0.7
+/nix/store/ngw3m00r391w31n13q4m2x06amx4mqri-coreutils-9.1
+/nix/store/ir8rqkxsqh0ar3avlvhs2crn0zx2d2mk-perl-5.36.0
+/nix/store/lqhj53ywk53rw2m6fc5wf59iyvbm4vjq-perl5.36.0-TermReadKey-2.38
+/nix/store/njz77ksdp38vy6wyb9bq70dzfjxm5im0-gnugrep-3.7
+/nix/store/np48awfh601vc3pvnh1n3qrvz0flcrnm-gettext-0.21
+/nix/store/nprxi3mw7bqb9z7j0z9cw00gwgixdbby-perl5.36.0-libwww-perl-6.67
+/nix/store/rs23c4i1y90x4w6pyc0v68janab9skdn-perl5.36.0-HTML-TagCloud-0.38
+/nix/store/scmjiz80b1hh521k06z4fgbkl6r5k84p-gnused-4.8
+/nix/store/xryxkg022p5vnlyyyx58csbmfc7ydsdp-curl-7.86.0
+/nix/store/z6976dw306w5fn1d4sg7xwc1x3cszy1s-perl5.36.0-FCGI-ProcManager-0.28
+/nix/store/z97bsdbkh6b60xpi12sqi6a0d28ql8cy-pcre2-10.40
+/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
+#+end_src
+
+** Nix and the Linux Standard Base (LSB)
+- LSB defines directories under ~/~
+- Package managers will keep mostly in line
+-
+
+** The Nix Store
+
+- ~/nix/store~ - Just a graph database
+- Every directory ~/nix/store/*~ is a *node*
+  - For git :: ~/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1~
+- Everything in that directory contains:
+  - A built artifact like the ~git~ executable
+  - Or references to other /nodes/ constituiting *edges*
+    - Libraries
+    - Config files
+    - Other binaries
+- Everything is immutable
+
+** /nix/store/<HASH>-<NAME>
+
+~/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1~
+
+- HASH | ~q1i8hccfgx0al5jhx5n610jwwqa3jijx~
+- NAME | ~git-2.38.1~
+
+- Every node has a hash
+- Uniquely identifies the contents of the node
+- Across separate machines and platforms, if the hash is the same then the contents will also be the same
+
+** Nix Derivations
+
+- A /derivation/ is a simple file which outlines the build instructions for a piece of software
+- A kind of lispy json
+
+<Insert simple derivation>
+
+*** Derivation format
+
+- Output paths - typically ~out/~
+- List of input derivations - the package's dependencies
+- The system - x86_64 or aarch64
+- Builder executable - bash/cargo/node/etc
+- Environment variables
+
+* Related Projects
+** Docker
+** Bazel

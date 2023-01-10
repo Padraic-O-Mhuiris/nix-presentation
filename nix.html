@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Nix</title>
+<meta name="author" content="Patrick Morris"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/dist/reveal.css"/>
+
+<link rel="stylesheet" href="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/dist/theme/black.css" id="theme"/>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide">
+<h1 class="title">Nix</h1><h2 class="author">Patrick Morris</h2><p class="date">Created: 2023-01-09 Mon 20:48</p>
+</section>
+
+<section>
+<section id="slide-1">
+<h2 id="1"><span class="section-number-2">1.</span> What is Nix?</h2>
+
+<div id="org9e0f40a" class="figure">
+<p><img src="images/nix_logo.svg" alt="nix_logo.svg" class="org-svg" width="500" />
+</p>
+</div>
+
+</section>
+<section id="slide-1-1">
+<h3 id="1-1"><span class="section-number-3">1.1.</span> Nix is a &ldquo;universal&rdquo; package manager</h3>
+<ul>
+<li>Similar to apt/brew/dpkg</li>
+<li>Can be used on any &ldquo;Unix-Like&rdquo; operating system, e.g Mac and Linux</li>
+<li>Also comes in it&rsquo;s own flavour - NixOS</li>
+
+</ul>
+
+</section>
+<section id="slide-1-2">
+<h3 id="1-2"><span class="section-number-3">1.2.</span> Nix is a build system language</h3>
+<ul>
+<li>Not a very useful language in the traditional sense</li>
+<li>Declaritive, functional and pure/hermetic</li>
+<li>Takes no inputs, only outputs are <b>derivations</b> (build instructions)</li>
+
+</ul>
+
+<div class="org-src-container">
+
+<pre class="src src-nix"><span style="color: #3B6EA8;">with</span> <span style="color: #29838D;">import</span> <span style="color: #97365B;">&lt;nixpkgs&gt;</span> {};
+stdenv.mkDerivation {
+  <span style="color: #842879;">name</span> = <span style="color: #4F894C;">"hello"</span>;
+  <span style="color: #842879;">src</span> = <span style="color: #97365B;">./src</span>;
+  <span style="color: #842879;">buildInputs</span> = [ coreutils gcc ];
+  <span style="color: #842879;">configurePhase</span> = <span style="color: #4F894C;">''</span>
+<span style="color: #4F894C;">    declare -xp</span>
+<span style="color: #4F894C;">  ''</span>;
+  <span style="color: #842879;">buildPhase</span> = <span style="color: #4F894C;">''</span>
+<span style="color: #4F894C;">    gcc "$src/hello.c" -o ./hello</span>
+<span style="color: #4F894C;">  ''</span>;
+  <span style="color: #842879;">installPhase</span> = <span style="color: #4F894C;">''</span>
+<span style="color: #4F894C;">    mkdir -p "$out/bin"</span>
+<span style="color: #4F894C;">    cp ./hello "$out/bin/"</span>
+<span style="color: #4F894C;">  ''</span>;
+}
+</pre>
+</div>
+
+</section>
+<section id="slide-1-3">
+<h3 id="1-3"><span class="section-number-3">1.3.</span> Nix tooling</h3>
+<ul>
+<li>Comes with a collection of cli-tools</li>
+<li><code>nix build | nix-build</code></li>
+<li><code>nix develop | nix-shell</code></li>
+<li><code>nix-env</code></li>
+<li><code>nix run</code></li>
+
+</ul>
+
+<p>
+Not important to know for the presentation
+</p>
+
+</section>
+<section id="slide-1-4">
+<h3 id="1-4"><span class="section-number-3">1.4.</span> Nix package registry</h3>
+<ul>
+<li>Huge global store of packages</li>
+<li>All managed in a single git repo</li>
+<li><a href="https://github.com/NixOS/nixpkgs">GitHub - NixOS/nixpkgs: Nix Packages collection</a>
+<dl>
+<dt>nixos-22.11</dt><dd>Latest stable, akin to Ubuntu LTS</dd>
+<dt>nixos-unstable</dt><dd>Snapshots of master branch, usually on a daily basis</dd>
+<dt>master</dt><dd>Rolling-update newest versions of packages</dd>
+
+</dl></li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-2">
+<h2 id="2"><span class="section-number-2">2.</span> Purpose of this talk</h2>
+<p>
+I strongly believe that either Nix itself or it&rsquo;s ideas are the future of how software will be built, developed and distributed
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-3">
+<h2 id="3"><span class="section-number-2">3.</span> Nix Philosophy &amp; Concepts</h2>
+<blockquote>
+<p>
+Everything on your computer implicity depends on a bunch of other things on your computer
+</p>
+</blockquote>
+
+</section>
+<section id="slide-3-1">
+<h3 id="3-1"><span class="section-number-3">3.1.</span> Core idea</h3>
+<ul>
+<li>All software is a graph of dependencies</li>
+<li>This graph is mostly implicit</li>
+<li>Nix makes this graph explicit</li>
+
+</ul>
+
+</section>
+<section id="slide-3-2">
+<h3 id="3-2"><span class="section-number-3">3.2.</span> Graph of dependencies for the git</h3>
+
+<div id="org05c5156" class="figure">
+<p><img src="images/nix_dependency_graph.svg" alt="nix_dependency_graph.svg" class="org-svg" width="100%" />
+</p>
+</div>
+
+</section>
+<section id="slide-3-3">
+<h3 id="3-3"><span class="section-number-3">3.3.</span> Hermeticity in building software</h3>
+<ul>
+<li>Means the state of being airtight or gastight</li>
+<li>This is the golden rule in how Nix builds software</li>
+<li>There are some exceptions (network access, hardware)</li>
+<li>Every package is de-facto built in an isolated environment</li>
+
+</ul>
+
+</section>
+<section id="slide-3-4">
+<h3 id="3-4"><span class="section-number-3">3.4.</span> How is hermeticity achieved?</h3>
+<p>
+Here is the list of direct dependencies for git
+</p>
+
+<pre class="example">
+/nix/store/9xfad3b5z4y00mzmk2wnn4900q0qmxns-glibc-2.35-224
+/nix/store/f1n473kbcxxr38f7amwf4sxyi56mfczh-expat-2.5.0
+/nix/store/fblaj5ywkgphzpp5kx41av32kls9256y-zlib-1.2.13
+/nix/store/wim4mqpn8lxhhr10p2kd070hyj152lil-bash-5.1-p16
+/nix/store/65cp4izx3bllnwqn7c7dhrq9h9gmjkal-python3-3.10.9
+/nix/store/88k0f4k4hb13mjqm1xc0sysjysrrw813-gzip-1.12
+/nix/store/8n4g9jl8s2v8sla6gffa03gy1gkk1pqm-perl5.36.0-URI-5.05
+/nix/store/a19azdhwnvmksbpfz0crb4d1l9l19b2d-git-2.38.1-doc
+/nix/store/ncwm1bgg4x4k7ixjni5bxj3v7b2x5lyb-perl5.36.0-FCGI-0.79
+/nix/store/k32xzhjqyvgmjnkckvk2h3gbjpdb3hfl-perl5.36.0-HTML-Parser-3.75
+/nix/store/w2gxv2p9831ypflpk61l7sjzi8j05agj-perl5.36.0-CGI-4.51
+/nix/store/a509h53d4vki546clzig63kh6h4qyps4-perl5.36.0-CGI-Fast-2.15
+/nix/store/bprhh8afhvz27b051y8j451fyp6mkk38-openssl-3.0.7
+/nix/store/ngw3m00r391w31n13q4m2x06amx4mqri-coreutils-9.1
+/nix/store/ir8rqkxsqh0ar3avlvhs2crn0zx2d2mk-perl-5.36.0
+/nix/store/lqhj53ywk53rw2m6fc5wf59iyvbm4vjq-perl5.36.0-TermReadKey-2.38
+/nix/store/njz77ksdp38vy6wyb9bq70dzfjxm5im0-gnugrep-3.7
+/nix/store/np48awfh601vc3pvnh1n3qrvz0flcrnm-gettext-0.21
+/nix/store/nprxi3mw7bqb9z7j0z9cw00gwgixdbby-perl5.36.0-libwww-perl-6.67
+/nix/store/rs23c4i1y90x4w6pyc0v68janab9skdn-perl5.36.0-HTML-TagCloud-0.38
+/nix/store/scmjiz80b1hh521k06z4fgbkl6r5k84p-gnused-4.8
+/nix/store/xryxkg022p5vnlyyyx58csbmfc7ydsdp-curl-7.86.0
+/nix/store/z6976dw306w5fn1d4sg7xwc1x3cszy1s-perl5.36.0-FCGI-ProcManager-0.28
+/nix/store/z97bsdbkh6b60xpi12sqi6a0d28ql8cy-pcre2-10.40
+/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
+</pre>
+
+</section>
+<section id="slide-3-4-1">
+<h4 id="3-4-1"><span class="section-number-4">3.4.1.</span> The Nix Store</h4>
+<ul>
+<li><code>/nix/store</code> - Just a graph database</li>
+<li>Every directory <code>/nix/store/*</code> is a <b>node</b>
+<dl>
+<dt>For git</dt><dd><code>/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1</code></dd>
+
+</dl></li>
+<li>Everything in that directory contains:
+<ul>
+<li>A built artifact like the <code>git</code> executable</li>
+<li>Or references to other <i>nodes</i> constituiting <b>edges</b>
+<ul>
+<li>Libraries</li>
+<li>Config files</li>
+<li>Other binaries</li>
+
+</ul></li>
+
+</ul></li>
+<li>Everything is immutable</li>
+
+</ul>
+
+<ol class="org-ol">
+<li><a id="3-4-1-1"></a>/nix/store/&lt;HASH&gt;-&lt;NAME&gt;<br />
+<p>
+<code>/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1</code>
+</p>
+
+<ul>
+<li>HASH | <code>q1i8hccfgx0al5jhx5n610jwwqa3jijx</code></li>
+<li>NAME | <code>git-2.38.1</code></li>
+
+<li>Every node has a hash</li>
+<li>Uniquely identifies the contents of the node</li>
+<li>Across separate machines and platforms, if the hash is the same then the contents will also be the same</li>
+
+</ul>
+</li>
+</ol>
+
+</section>
+<section id="slide-3-4-2">
+<h4 id="3-4-2"><span class="section-number-4">3.4.2.</span> Nix Derivations</h4>
+<ul>
+<li>A <i>derivation</i> is a simple file which outlines the build instructions for a piece of software</li>
+<li>A kind of lispy json</li>
+
+</ul>
+
+<p>
+&lt;Insert simple derivation&gt;
+</p>
+
+<ol class="org-ol">
+<li><a id="3-4-2-1"></a>Derivation format<br />
+<ul>
+<li>Output paths - typically <code>out</code></li>
+<li>List of input derivations - the package&rsquo;s dependencies</li>
+<li>The system - x86<sub>64</sub> or arm</li>
+<li>Builder executable - bash/cargo/node/etc</li>
+<li>Environment variables</li>
+
+</ul>
+</li>
+
+<li><a id="3-4-2-2"></a>Input address hashing<br /></li>
+</ol>
+
+
+</section>
+</section>
+<section>
+<section id="slide-4">
+<h2 id="4"><span class="section-number-2">4.</span> Related Projects</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+</section>
+<section id="slide-4-1">
+<h3 id="4-1"><span class="section-number-3">4.1.</span> Docker</h3>
+</section>
+<section id="slide-4-2">
+<h3 id="4-2"><span class="section-number-3">4.2.</span> Bazel</h3>
+</section>
+</section>
+</div>
+</div>
+<script src="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/dist/reveal.js"></script>
+<script src="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/plugin/markdown/markdown.js"></script>
+<script src="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/plugin/notes/notes.js"></script>
+<script src="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/plugin/search/search.js"></script>
+<script src="/home/padraic/.emacs.d/.local/straight/build-28.2/revealjs/plugin/zoom/zoom.js"></script>
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: true,
+slideNumber: 'c',
+rollingLinks: false,
+keyboard: true,
+mouseWheel: false,
+fragmentInURL: false,
+hashOneBasedIndex: false,
+pdfSeparateFragments: true,
+overview: true,
+margin: 0.10,
+maxScale: 0.80,
+
+transition: 'convex',
+transitionSpeed: 'default',
+
+// Plugins with reveal.js 4.x
+plugins: [ RevealMarkdown, RevealNotes, RevealSearch, RevealZoom ],
+
+// Optional libraries used to extend reveal.js
+dependencies: [
+]
+
+});
+</script>
+</body>
+</html>

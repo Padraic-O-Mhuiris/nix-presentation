@@ -1,0 +1,4 @@
+#+title: Notes
+
+- https://illustris.tech/devops/why-you-should-NOT-never-ever-use-nixos/
+- https://blog.replit.com/nix-vs-docker
