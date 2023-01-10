@@ -71,14 +71,6 @@ layout: center
 
 </v-clicks>
 
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
 ---
 layout: two-cols
 ---
@@ -110,7 +102,6 @@ Everything under a `node` directory is considered immutable
 In a node, there may be references to paths in other nodes, creating an edge
 
 </v-clicks>
-
 
 ::right::
 
@@ -145,6 +136,117 @@ layout: center
 <code>
 /nix/store/<b>q1i8hccfgx0al5jhx5n610jwwqa3jijx</b>-git-2.38.1
 </code>
+
+<br/>
+<br/>
+
+<v-clicks>
+
+Every node has a unique hash
+
+For a given hash, the contents of that node will always be identical, across machines, platforms, etc
+
+If the hash differs, then the contents differs
+
+> Note: A node can also be referred to as an `outputPath`, which will be important later
+
+</v-clicks>
+
+---
+layout: center
+---
+
+The Nix Store is a graph database
+
+<v-clicks>
+
+More specifically a **directed acyclic graph** database
+
+And we get to query it like a database
+
+<div>
+
+```bash
+# List's all the direct dependencies of git
+nix-store --query --references /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
+
+# Models the "transitive closure" of the git dependency graph
+nix-store --query --graph /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1 | dot -Tsvg
+```
+
+</div>
+
+</v-clicks>
+
+---
+layout: two-cols
+---
+
+# Nix Derivations
+
+Simply put, derivations are the building blocks of a Nix system
+
+<table v-if="$slidev.nav.clicks >= 1">
+  <tr></tr>
+  <tr v-if="$slidev.nav.clicks >= 1">
+    <td>outputs</td>
+    <td>What nodes can this build?</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 2">
+    <td>inputDrvs</td>
+    <td>Other derivations which must be built before this one</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 3">
+    <td>inputSrcs</td>
+    <td>Nodes already in the Nix Store which this build depends</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 4">
+    <td>platform</td>
+    <td>x86_64-linux, aarch64-darwin, ...</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 5">
+    <td>builder</td>
+    <td>Program to run to do the build</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 6">
+    <td>args</td>
+    <td>Argument to pass to the builder program</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 7">
+    <td>env</td>
+    <td>Environment to set before calling the builder</td>
+  </tr>
+</table>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+```bash {all|4|5|6|7|8|9|10,11,12,13,14,15}
+$ cat /nix/store/856p...gdl5-demo.drv
+
+Derive(
+  [("out","/nix/store/vy11....nc34-demo","","")],
+  [("/nix/store/0lj5...30xs-bash-5.1-p16.drv",["out"])],
+  [],
+  "x86_64-linux",
+  "/nix/store/iffl...1kmi-bash-5.1-p16/bin/bash",
+  ["-c","echo \"Hello World!\" > $out\n"],
+  [
+    ("builder","/nix/store/iffl...1kmi-bash-5.1-p16/bin/bash"),
+    ("name","demo"),
+    ("out","/nix/store/vy114...9nc34-demo"),
+    ("system","x86_64-linux")
+  ]
+)
+```
+
 
 <!-- --- -->
 <!-- src: ./pages/nix_philosophy.md -->
