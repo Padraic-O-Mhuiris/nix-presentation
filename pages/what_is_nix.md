@@ -22,19 +22,19 @@ It's also a language
 ```nix
 with import <nixpkgs> {};
 stdenv.mkDerivation {
-name = "hello";
-src = ./src;
-buildInputs = [ coreutils gcc ];
-configurePhase = ''
-  declare -xp
-'';
-buildPhase = ''
-  gcc "$src/hello.c" -o ./hello
-'';
-installPhase = ''
-  mkdir -p "$out/bin"
-  cp ./hello "$out/bin/"
-'';
+  name = "hello";
+  src = ./src;
+  buildInputs = [ coreutils gcc ];
+  configurePhase = ''
+    declare -xp
+  '';
+  buildPhase = ''
+    gcc "$src/hello.c" -o ./hello
+  '';
+  installPhase = ''
+    mkdir -p "$out/bin"
+    cp ./hello "$out/bin/"
+  '';
 }
 ```
 

@@ -3,7 +3,6 @@ theme: default
 background: https://raw.githubusercontent.com/NixOS/nixos-artwork/c1dc75611042b57a385c80495d3728724c35cfee/wallpapers/nix-wallpaper-nineish.src.svg
 class: "text-center"
 highlighter: shiki
-lineNumbers: true
 drawings:
   persist: false
 colorscheme: light
@@ -18,9 +17,11 @@ fonts:
 
 How to build software from the future
 
-<!-- --- -->
-<!-- src: ./pages/what_is_nix.md -->
-<!-- --- -->
+
+---
+src: /pages/what_is_nix.md
+---
+
 
 ---
 layout: center
@@ -97,9 +98,11 @@ Example:
 
 </div>
 
-Everything under a `node` directory is considered immutable
+Inside a **node** are the build artifacts - e.g, the `git` binary
 
-In a node, there may be references to paths in other nodes, creating an edge
+`/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1/bin/git`
+
+Also, there may be references to paths in other nodes, creating edges/vertices
 
 </v-clicks>
 
@@ -126,7 +129,7 @@ In a node, there may be references to paths in other nodes, creating an edge
 /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
 ```
 
-<sub>Some of the direct dependencies for git</sub>
+<sub>Some of the direct dependencies for git in `/nix/store`</sub>
 
 
 ---
@@ -178,13 +181,17 @@ nix-store --query --graph /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
 
 </v-clicks>
 
+
 ---
 layout: two-cols
 ---
 
 # Nix Derivations
 
-Simply put, derivations are the building blocks of a Nix system
+#### Derivation structure
+
+<br/>
+<br/>
 
 <table v-if="$slidev.nav.clicks >= 1">
   <tr></tr>
@@ -247,7 +254,733 @@ Derive(
 )
 ```
 
+---
+layout: two-cols
+clicks: 2
+---
 
-<!-- --- -->
-<!-- src: ./pages/nix_philosophy.md -->
-<!-- --- -->
+# Nix Derivations
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+A derivation is a recipe to build some other path in the Nix Store
+
+It's just a file of build instructions
+
+<table v-if="$slidev.nav.clicks >= 1">
+  <tr></tr>
+  <tr v-if="$slidev.nav.clicks >= 1">
+    <td>drvPath</td>
+    <td>Recipe file containing build instructions</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 2">
+    <td>outPath</td>
+    <td>Location of build artifacts</td>
+  </tr>
+</table>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+
+```mermaid {theme: 'dark', scale: 2.5}
+flowchart TD
+drv[drvPath] --> x[outPath]
+```
+
+
+---
+
+
+Essentially .drv files are just a fancy json
+
+```bash
+nix show-derivation /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv
+```
+
+```json{all|5}
+{
+  "/nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv": {
+    "outputs": {
+      "out": {
+        "path": "/nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo"
+      }
+    },
+    "inputSrcs": [],
+    "inputDrvs": {
+      "/nix/store/0lj5m63bn3ins5qiq6chs1vz3nk030xs-bash-5.1-p16.drv": [
+        "out"
+      ]
+    },
+    "system": "x86_64-linux",
+    "builder": "/nix/store/iffl6dlplhv22i2xy7n1w51a5r631kmi-bash-5.1-p16/bin/bash",
+    "args": [
+      "-c",
+      "echo \"Hello World!\" > $out\n"
+    ],
+    "env": {
+      "builder": "/nix/store/iffl6dlplhv22i2xy7n1w51a5r631kmi-bash-5.1-p16/bin/bash",
+      "name": "demo",
+      "out": "/nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo",
+      "system": "x86_64-linux"
+    }
+  }
+}
+```
+
+---
+layout: center
+---
+
+Just like the node it builds, it's transitive closure is also explicitly defined
+
+```bash
+nix-store --query --graph /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv \
+  | dot -Tsvg > graph.svg && feh graph.svg
+```
+
+<v-click>
+
+Everything* in the Nix Store, except derivations are created using derivations
+
+</v-click>
+
+---
+layout: center
+---
+
+Derivations are built using some variant of the `nix-build`/`nix build` command
+
+<v-clicks>
+
+```bash
+$ nix-build /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv # legacy
+```
+
+or
+
+```bash
+$ nix build /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv --print-output-paths # newer > nix-2.4
+```
+
+producing the `outPath`
+
+```bash
+/nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo # The node outpath
+```
+
+verifying the build went correctly
+
+```bash
+$ cat /nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo
+
+Hello World!
+```
+
+</v-clicks>
+
+
+---
+layout: two-cols
+---
+
+## How are the hashes generated then?
+
+<br/>
+
+<v-clicks>
+
+This is particularly low-level so I'm going to keep it simple
+
+For a **derivation** hash, it typically is just the sha256 or md5 of the derivation contents
+
+For an **output** hash, it typically is the sha256 or md5 of the derivation hash + the output name ("out")
+
+So if we change the version of the bash dependency stated in the derivation, the derivation hash will change
+
+Which will propagate a change to the output hash
+
+This turns each unique package node in the Nix Store and it's children dependencies into a merkle-tree structure
+
+</v-clicks>
+
+::right::
+
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+<img src="/images/derivation_hashing.svg" class="max-w-250 max-h-70" alt="...">
+
+---
+layout: center
+---
+
+By this method, we create a unique fingerprint on <ins>how</ins> a piece of software is built
+
+<v-clicks>
+
+Not *always* a unique fingerprint on <ins>what</ins> software is built, byte-for-byte equality is not always the case across two separate builds
+
+However if the `builder` program is deterministic in how it builds the program, it is
+
+Content-address hashing, which would give this byte-for-byte property, is currently in the Nix development pipeline
+
+</v-clicks>
+
+---
+layout: center
+---
+
+# Hermeticity
+
+---
+
+# Pure vs Hermetic
+
+<br/>
+<br/>
+<br/>
+
+Nix is often described as a <ins>pure</ins> functional package manager
+
+<v-clicks>
+
+Which is not untrue
+
+Instead of pure it's more precise to say it's <ins>**hermetic**</ins>
+
+**Pure** in a software context means that some program for a given input will always generate the same output
+
+And that not _side-effects_ are created
+
+As discussed this is generally true and the desired goal of Nix
+
+Hermetic is more accurate
+
+</v-clicks>
+
+---
+layout: two-cols
+---
+
+# Hermeticity
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+Rooted from the Greek god, Hermes, who amongst other things was the god of boundaries
+
+<v-clicks>
+
+In more scientific contexts it means the concept of being **airtight** or **gastight**
+
+In software, it means a program which is <ins>fully independent</ins> or <ins>isolated</ins>
+
+</v-clicks>
+
+::right::
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Hermes_Ingenui_Pio-Clementino_Inv544.jpg/440px-Hermes_Ingenui_Pio-Clementino_Inv544.jpg)
+
+---
+layout: center
+---
+
+# All Nix builds are hermetic
+
+<br/>
+
+<v-clicks>
+
+Builds are executed in an isolated _"sandbox"_
+
+All builds are done by a special user called `nixbld`
+
+Which only has access to content in the Nix Store
+
+The build runtime is executed in a "chrooted" environment
+
+Access to the network and the external host filesystem is restricted (some caveats)
+
+TLDR: something similar to Docker
+
+</v-clicks>
+
+---
+
+# Dependency closure of `git`
+
+<img src="/images/git_dependency_graph_1.svg" class="max-w-230 max-h-100" alt="...">
+
+<v-clicks>
+
+All dependencies are explicitly known
+
+Nothing is machine dependent
+
+Extremely strong guarantees of reproducibility
+
+Entire dependency closure can be copied to another machine (that can execute x86_64-linux binaries)
+
+</v-clicks>
+
+---
+layout: center
+---
+
+### Things either work everywhere and always or nowhere and never
+
+---
+layout: center
+---
+
+### With Nix any software build/install can be a binary download - period
+
+<br/>
+
+<v-clicks>
+
+- Once a package derivation has been built somewhere on some machine
+- That graph can be compressed, copied and dumped directly into your nix store - in parallel
+- This makes things extremely fast
+- [Cachix](https://www.cachix.org/) is a binary cache which enable this
+
+</v-clicks>
+
+---
+layout: center
+---
+
+## The Nix Language
+
+---
+layout: center
+---
+
+- Probably the most challenging part for people new to Nix
+
+<v-clicks>
+
+- Weird syntax, similarities to Haskell, dynamically typed
+- It's a <ins>D</ins>omain <ins>S</ins>pecific <ins>L</ins>anguage
+- Functional, pure and lazy - we'll talk about this
+
+</v-clicks>
+
+---
+layout: two-cols
+---
+
+### Nix is <ins>functional</ins>, pure and lazy
+
+Everything is either a function or data
+
+<v-clicks>
+
+```nix
+addOne = x: x + 1;
+```
+
+<div>
+<br/>
+
+```nix
+{
+  string = "hello";
+  integer = 1;
+  float = 3.141;
+  bool = true;
+  null = null;
+  list = [ 1 "two" false ];
+  attribute-set = {
+    a = "hello";
+    b = 2;
+    c = 2.718;
+    d = false;
+  }; # comments are supported
+}
+```
+</div>
+
+</v-clicks>
+
+::right::
+
+<br/>
+
+<v-clicks>
+
+Core language is very small
+
+```nix
+nix-repl> builtins.
+
+builtins.abort                          builtins.isAttrs
+builtins.add                            builtins.isBool
+builtins.addErrorContext                builtins.isFloat
+builtins.all                            builtins.isFunction
+builtins.any                            builtins.isInt
+builtins.appendContext                  builtins.isList
+builtins.attrNames                      builtins.isNull
+builtins.attrValues                     builtins.isPath
+builtins.baseNameOf                     builtins.isString
+builtins.bitAnd                         builtins.langVersion
+builtins.bitOr                          builtins.length
+builtins.bitXor                         builtins.lessThan
+builtins.break                          builtins.listToAttrs
+builtins.builtins                       builtins.map
+builtins.catAttrs                       builtins.mapAttrs
+builtins.ceil                           builtins.match
+builtins.compareVersions                builtins.mul
+builtins.concatLists                    builtins.nixPath
+builtins.concatMap                      builtins.nixVersion
+builtins.concatStringsSep               builtins.null
+builtins.currentSystem                  builtins.parseDrvName
+builtins.currentTime                    builtins.partition
+builtins.deepSeq                        builtins.path
+builtins.derivation                     builtins.pathExists
+builtins.derivationStrict               builtins.placeholder
+builtins.dirOf                          builtins.readDir
+builtins.div                            builtins.readFile
+builtins.elem                           builtins.removeAttrs
+builtins.elemAt                         builtins.replaceStrings
+builtins.false                          builtins.scopedImport
+builtins.fetchGit                       builtins.seq
+builtins.fetchMercurial                 builtins.sort
+builtins.fetchTarball                   builtins.split
+builtins.fetchTree                      builtins.splitVersion
+builtins.fetchurl                       builtins.storeDir
+builtins.filter                         builtins.storePath
+builtins.filterSource                   builtins.stringLength
+builtins.findFile                       builtins.sub
+builtins.floor                          builtins.substring
+builtins.foldl'                         builtins.tail
+builtins.fromJSON                       builtins.throw
+builtins.fromTOML                       builtins.toFile
+builtins.functionArgs                   builtins.toJSON
+builtins.genList                        builtins.toPath
+builtins.genericClosure                 builtins.toString
+builtins.getAttr                        builtins.toXML
+builtins.getContext                     builtins.trace
+builtins.getEnv                         builtins.traceVerbose
+builtins.getFlake                       builtins.true
+builtins.groupBy                        builtins.tryEval
+builtins.hasAttr                        builtins.typeOf
+builtins.hasContext                     builtins.unsafeDiscardOutputDependency
+builtins.hashFile                       builtins.unsafeDiscardStringContext
+builtins.hashString                     builtins.unsafeGetAttrPos
+builtins.head                           builtins.zipAttrsWith
+builtins.import
+builtins.intersectAttrs
+```
+
+</v-clicks>
+
+---
+layout: center
+---
+
+### Nix is functional, pure and <ins>lazy</ins>
+
+<v-clicks>
+
+Lazy/Laziness/Lazy-evaluation just means where <br/>
+an expression is evaluated only when it's values are needed
+
+<div>
+
+Suppose:
+
+```nix
+let
+  data = {
+    a = 1;
+    b = functionWhichTakesALongTimeToRun 1;
+  }
+in data.a
+```
+
+</div>
+
+`data.b` is never evaluated in Nix
+
+`data.a => 1` is evaluated immediately
+
+</v-clicks>
+
+---
+layout: center
+---
+
+### Nix is functional, <ins>pure</ins> and lazy
+
+<v-clicks>
+
+We talked a little about this already
+
+Pure as in free of side effects
+
+</v-clicks>
+
+<v-clicks>
+
+- no networking
+- no user IO
+- no writing to file
+- no output
+- doesn't actually do anything, in the traditional sense
+- Only purpose is to call the `derivation` function
+- The only side-effect as it write's a derivation a path in the nix store
+
+</v-clicks>
+
+---
+layout: center
+---
+
+### The Nix language only does one thing
+
+<br/>
+
+<v-clicks>
+
+```nix
+derivation {
+  name = "demo";
+  system = "x86_64-linux";
+  builder = "${pkgs.bash}/bin/bash";
+  args = ["-c" "echo \"Hello World!\" > $out"];
+}
+```
+
+When a derivation function like this is evaluated we (roughly) get:
+
+```nix{all|2,3,4,5|6,7|all}
+{
+  name = "demo";
+  system = "x86_64-linux";
+  builder = "${pkgs.bash}/bin/bash";
+  args = ["-c" "echo \"Hello World!\" > $out"];
+  drvPath = "/nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv";
+  outPath = "/nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo";
+}
+```
+
+<div>
+
+<br/>
+
+> The Nix language does not do anything except write out derivations, <br/> for which other tooling (`nix-build`) can execute a build
+
+</div>
+
+Evaluation of the Nix language is a separate process of building a Nix derivation
+
+</v-clicks>
+
+---
+layout: center
+---
+
+So if a given `.nix` file to build some package has stated 100 dependencies
+
+<v-clicks>
+
+The evaluation of that file will recursively write 100 derivations
+
+And then the derivation (_root_) of that package will then be written
+
+The _root_ derivation can then be called by `nix-build` or the like
+
+That dependency graph is traversed again, recursively building 100 dependencies to their outPaths
+
+And finally the _root_ derivation is built to it's outPath utilising all those explicitly stated deps
+
+</v-clicks>
+
+---
+layout: center
+---
+
+
+Building software is arbitrarily complex
+
+<v-clicks>
+
+Nix reduces that to just individual derivations
+
+Which expresses the build instructions of a massively complex piece
+
+That is reproducible and reliable
+
+</v-clicks>
+
+![](/images/nix_complexity.png)
+
+---
+layout: center
+---
+
+The Nix language enables complex descriptions of how to build a piece of software
+
+<v-clicks>
+
+Typically a package manager will only provide a few variants of a given package
+
+Crafting a nix package becomes analogous to creating an API to build that package in a multitude of ways
+
+If we look at how [`curl`](https://github.com/NixOS/nixpkgs/blob/nixos-22.11/pkgs/tools/networking/curl/default.nix#L185) is packaged
+
+There's a lot of interesting possibilities to build systems with nix
+
+</v-clicks>
+
+---
+layout: center
+clicks: 6
+---
+
+## [Nixpkgs](https://github.com/NixOS/nixpkgs/tree/nixos-22.11)
+
+Global package repository for Nix
+
+<v-clicks>
+
+One of the most active repositories on Github
+
+Always community contributions
+
+Huge, ~95,000 pkgs (depends which branch)
+
+</v-clicks>
+
+<br/>
+
+<table v-if="$slidev.nav.clicks >= 4">
+  <tr>
+    <th>Branch</th>
+    <th>Description</th>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 4">
+    <td>nixos-21.11</td>
+    <td>Current stable, akin to Ubuntu versioning</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 5">
+    <td>unstable</td>
+    <td>Daily rolling release, pretty "bleeding edge", akin to Arch</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 6">
+    <td>master</td>
+    <td>As up to date as possible, can be broken, comes with warning signs</td>
+  </tr>
+</table>
+
+---
+layout: center
+---
+
+Nixpkgs is just a big attrset of lazy-evaluated calls to `derivation`
+
+<v-clicks>
+
+~95,000 calls to derivation
+
+```
+{
+  python = derivation { ... }
+  rust = derivation { ... }
+  nginx = derivation { ... }
+  curl = derivation { ... }
+  linux_kernel = derivation { ... }
+  .
+  .
+  .
+}
+```
+
+
+
+</v-clicks>
+
+---
+layout: two-cols
+---
+
+<br/>
+<br/>
+<br/>
+<br/>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Nix_snowflake.svg/1004px-Nix_snowflake.svg.png?20201208155042" class="max-w-100 max-h-100" alt="...">
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+
+## In essence that's Nix
+
+<v-clicks>
+
+There are more things to randomly cover:
+
+</v-clicks>
+
+<v-clicks>
+
+- nix-shell
+- Nix flakes
+- Hermetic developer environments
+- CI
+- Nix & Docker
+- NixOS
+- ... and many more
+
+</v-clicks>
+
+---
+
+## The nix-shell
+
+Often people will read about nix and hear about `nix-shell` - it's really useful
+
+`nix-shell`, is just a wrapper around `nix-build` but will jump you into a new shell environment
+
+You can specify a package to be downloaded and be added to your shell `PATH`, e.g
+
+```bash
+nix-shell -p nodejs-16_x
+```
+
+This is very ergonomic for one-time-use of a specific package
+
+But you can utilise a shell.nix file for an automatic virtual environment
+
+```nix
+{ pkgs ? import <nixpkgs> {} }:
+  pkgs.mkShell {
+    # nativeBuildInputs is usually what you want -- tools you need to run
+    nativeBuildInputs = with pkgs; [ nodejs-16_x ];
+}
+```
