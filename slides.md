@@ -550,6 +550,12 @@ layout: center
 layout: center
 ---
 
+![](https://ih1.redbubble.net/image.1939881742.9679/flat,750x,075,f-pad,750x1000,f8f8f8.u2.jpg)
+
+---
+layout: center
+---
+
 ### With Nix any software build/install can be a binary download - period
 
 <br/>
@@ -841,9 +847,9 @@ The Nix language enables complex descriptions of how to build a piece of softwar
 
 <v-clicks>
 
-Typically a package manager will only provide a few variants of a given package
+Typically a package manager will only provide only one or a few variants of a given package
 
-Crafting a nix package becomes analogous to creating an API to build that package in a multitude of ways
+Crafting a nix package becomes analogous to creating an API to build that package for every variant
 
 If we look at how [`curl`](https://github.com/NixOS/nixpkgs/blob/nixos-22.11/pkgs/tools/networking/curl/default.nix#L185) is packaged
 
@@ -963,6 +969,8 @@ There are more things to randomly cover:
 
 ## The nix-shell
 
+<v-clicks>
+
 Often people will read about nix and hear about `nix-shell` - it's really useful
 
 `nix-shell`, is just a wrapper around `nix-build` but will jump you into a new shell environment
@@ -975,7 +983,7 @@ nix-shell -p nodejs-16_x
 
 This is very ergonomic for one-time-use of a specific package
 
-But you can utilise a shell.nix file for an automatic virtual environment
+But you can utilise a shell.nix file for an automatic 'semi-virtual' environment
 
 ```nix
 { pkgs ? import <nixpkgs> {} }:
@@ -984,3 +992,135 @@ But you can utilise a shell.nix file for an automatic virtual environment
     nativeBuildInputs = with pkgs; [ nodejs-16_x ];
 }
 ```
+
+</v-clicks>
+
+---
+
+## Nix Flakes
+
+<v-clicks>
+
+Relatively new-addition to the Nix ecosystem
+
+Analogous to the role `cargo.toml` and `package.json` serve in a rust or javascript based project
+
+In Nix based workflows, you would specify a `flake.nix`
+
+Vastly simplifies how nix based projects can be composed
+
+Still _"experimental"_ but becoming the de-facto standard
+
+Enables any github repo publish a set of derivations like nixpkgs
+
+But it allows more cool stuff
+
+It's divided into two parts, an "input" schema and an "output" schema
+
+</v-clicks>
+
+---
+layout: two-cols
+---
+
+## Nix Flakes
+
+<br/>
+
+### An input schema
+
+<br/>
+<br/>
+
+<v-clicks>
+
+- attribute set of all "derivation set dependencies" (nixpkgs)
+- Kind of analogous to the "dependencies" field in a package.json
+- Except it declares a collection of packages rather than an individual one
+- Very useful when a package isn't included in nixpkgs
+
+</v-clicks>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
+
+    foo.url = "github:FooCompany/foo";
+    bar.url = "github:barCompany/bar/62108d953e7c31115d9d18159af9e49eb029fa9";
+  };
+};
+
+```
+
+---
+layout: two-cols
+---
+
+## Nix Flakes
+
+<br/>
+
+### An output schema
+
+<br/>
+<br/>
+
+<v-clicks>
+
+- A function of one argument which is an attribute set of all inputs from the input schema
+- The output of the function is an attribute set of different flake outputs
+- These can then be rationalised by nix tooling to do a variety of things
+- `packages` - `nix build . | nix build .#<name>`
+- `apps` - `nix run . | nix run .#<name>`
+- `devShells` - `nix develop . | nix run .#<name>`
+
+</v-clicks>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+
+```nix
+# "<system>" - what system architecture
+# "<name>" - name of that package/app/devShell/etc
+
+{
+  outputs = { self, nixpkgs, ... }@inputs: {
+
+    packages."<system>"."<name>" = derivation;
+    packages."<system>".default = derivation;
+
+    apps."<system>"."<name>" = { type = "app";  program = "<store-path>";  };
+    apps."<system>".default = { type = "app"; program = "..."; };
+
+    devShells."<system>"."<name>" = derivation;
+    devShells."<system>".default = derivation;
+
+    ...
+  }
+}
+
+```
+
+---
+layout: two-cols
+---
+
+## Nix Flakes - Real world example
