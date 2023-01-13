@@ -1,6 +1,7 @@
 {
   "name": "nix-presentation",
   "private": true,
+  "version": "0.0.1",
   "scripts": {
     "build": "slidev build",
     "dev": "slidev --open",

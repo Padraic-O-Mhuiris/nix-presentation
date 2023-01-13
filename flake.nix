@@ -11,6 +11,19 @@
         version = (pkgs.lib.importJSON (src + "/package.json")).version;
         src = ./.;
         buildPhase = "yarn build";
+        installPhase = ''
+          mkdir -p $out/public/assets;
+          mv deps/${name}/dist/* $out/public/
+        '';
+        distPhase = "true";
+      };
+
+      apps.${system}.default = {
+        type = "app";
+        program = "${pkgs.python3}/bin/python -m http-server -d ${
+            self.packages.${system}.default
+          }/public";
       };
     };
+
 }
