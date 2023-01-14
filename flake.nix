@@ -6,24 +6,31 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
     in {
-      packages.${system}.default = pkgs.mkYarnPackage rec {
-        name = "nix-presentation";
-        version = (pkgs.lib.importJSON (src + "/package.json")).version;
-        src = ./.;
-        buildPhase = "yarn build";
-        installPhase = ''
-          mkdir -p $out/public/assets;
-          mv deps/${name}/dist/* $out/public/
+      packages.${system} = {
+
+        site = pkgs.mkYarnPackage rec {
+          name = "nix-presentation";
+          version = (pkgs.lib.importJSON (src + "/package.json")).version;
+          src = ./.;
+          buildPhase = "yarn build";
+          installPhase = ''
+            mkdir -p $out/public;
+            mv deps/${name}/dist/* $out/public/
+          '';
+          distPhase = "true";
+        };
+
+        server = pkgs.writeScriptBin "nix-presentation-server" ''
+          ${pkgs.webfs}/bin/webfsd -p 3000 -F -j -r ${
+            self.packages.${system}.site
+          }/public -f index.html
         '';
-        distPhase = "true";
       };
 
       apps.${system}.default = {
         type = "app";
-        program = "${pkgs.python3}/bin/python -m http-server -d ${
-            self.packages.${system}.default
-          }/public";
+        program =
+          "${self.packages.${system}.server}/bin/nix-presentation-server";
       };
     };
-
 }

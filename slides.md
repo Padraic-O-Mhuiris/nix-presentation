@@ -1121,6 +1121,97 @@ layout: two-cols
 
 ---
 layout: two-cols
+clicks: 4
 ---
 
 ## Nix Flakes - Real world example
+
+On the right we have the `flake.nix` for this presentation
+
+
+<div v-if="$slidev.nav.clicks >= 1">
+
+This builds the static site assets
+
+```bash
+nix build .#site
+```
+
+</div>
+
+<div v-if="$slidev.nav.clicks >= 2">
+
+This creates a bash script which run's a webserver hosting the files
+
+```bash
+nix build .#server
+```
+
+</div>
+
+<div v-if="$slidev.nav.clicks >= 3">
+
+This will then run the server
+
+```bash
+nix run .
+```
+
+</div>
+
+<div v-if="$slidev.nav.clicks > 4">
+
+You can also run it remotely
+
+```bash
+nix run .
+```
+
+</div>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+```nix{all|11-21|22-27|30-34|all}
+{
+  description = "Nix Presentation";
+  inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11"; };
+  outputs = { self, nixpkgs, ... }@inputs:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+    in {
+      packages.${system} = {
+
+        site = pkgs.mkYarnPackage rec {
+          name = "nix-presentation";
+          version = (pkgs.lib.importJSON (src + "/package.json")).version;
+          src = ./.;
+          buildPhase = "yarn build";
+          installPhase = ''
+            mkdir -p $out/public;
+            mv deps/${name}/dist/* $out/public/
+          '';
+          distPhase = "true";
+        };
+
+        server = pkgs.writeScriptBin "nix-presentation-server" ''
+          ${pkgs.webfs}/bin/webfsd -p 3000 -F -j -r ${
+            self.packages.${system}.site
+          }/public -f index.html
+        '';
+      };
+
+      apps.${system}.default = {
+        type = "app";
+        program =
+          "${self.packages.${system}.server}/bin/nix-presentation-server";
+      };
+    };
+}
+```
