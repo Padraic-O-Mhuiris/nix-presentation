@@ -1164,7 +1164,7 @@ nix run .
 You can also run it remotely
 
 ```bash
-nix run .
+nix run https://github.com/Padraic-O-Mhuiris/nix-presentation
 ```
 
 </div>
