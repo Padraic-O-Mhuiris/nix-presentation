@@ -33,7 +33,7 @@
           "${self.packages.${system}.server}/bin/nix-presentation-server";
       };
 
-      devshell.${system} =
+      devShell.${system} =
         pkgs.mkShell { buildInputs = with pkgs; [ nodejs yarn ]; };
     };
 }

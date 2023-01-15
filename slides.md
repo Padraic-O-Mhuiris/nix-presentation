@@ -1230,4 +1230,6 @@ This last command:
 nix run <REMOTE_URL>
 ```
 
-turns everything into a 1-click process
+turns everything into a 1-click operation
+
+without any pre-requisites or setup
