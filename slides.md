@@ -1226,6 +1226,8 @@ layout: center
 
 This last command:
 
+<v-clicks>
+
 ```
 nix run <REMOTE_URL>
 ```
@@ -1233,3 +1235,319 @@ nix run <REMOTE_URL>
 turns everything into a 1-click operation
 
 without any pre-requisites or setup
+
+<img src="https://media.makeameme.org/created/its-magic-5c9ab8.jpg" class="max-w-75" alt="...">
+
+</v-clicks>
+
+---
+layout: center
+---
+
+## Hermetic Developer Environments
+
+<br/>
+
+<v-clicks>
+
+For a project, there typically requires a process setting up your system in order to begin development
+
+e.g Global deps like node and npm/yarn/pnpm in js have to be globally installed
+
+These are "implied" dependencies of your project
+
+Nix allows for a project to internalise them as dependencies
+
+With essentially no obstruction for the developer
+
+</v-clicks>
+
+---
+
+# Hermetic Developement Environments
+
+<br/>
+
+<v-clicks>
+
+### [`direnv`](https://direnv.net/)
+
+`direnv` is an extension for your shell
+
+Useful for auto-loading environment variables/secrets, just `cd` into a dir
+
+Will read a `.envrc` file and bring everything into scope
+
+### [`nix-direnv`](https://github.com/nix-community/nix-direnv)
+
+Extension to `direnv`, integrates with nix tooling
+
+```bash
+echo "use nix" >> .envrc # for shell.nix
+
+echo "use flake" >> .envrc # for a flake devShell
+```
+
+Then call `direnv allow` in that directory
+
+</v-clicks>
+---
+
+# Hermetic Developement Environments
+
+<br/>
+
+### devShells
+
+The same idea as `shell.nix`, just internalised in a flake - newer way of creating ephemeral shells
+
+<v-clicks>
+
+```bash
+nix develop .
+```
+
+<br/>
+
+```nix
+{
+  inputs = { ... };
+  outputs = { self, nixpkgs, ... }@inputs:
+    {
+      devShell.${system} =
+        pkgs.mkShell { buildInputs = with pkgs; [ nodejs yarn ]; };
+    };
+}
+```
+
+This makes it straightforward and simple to standardise <ins>**all**</ins> tooling across a team
+
+All dependencies are explicitly self-contained for <ins>**any**</ins> project, regardless of language
+
+With 0 setup to begin working on that project
+
+</v-clicks>
+
+---
+
+# Nix vs Docker
+
+<br/>
+
+Many people often compare Nix and Docker
+
+<v-clicks>
+
+Lot of overlap as both create isolated reproducible environments
+
+But are both fundamentally different:
+
+- Docker is a toolkit for building and deploying containers
+- Nix is a package and configuration manager
+
+</v-clicks>
+
+---
+
+# Nix vs Docker
+
+<br/>
+
+### Docker
+
+<v-clicks>
+
+Docker solves reproducible environments by snapshotting system state in an `image`
+
+Images are created from a `DockerFile` like below:
+
+```docker
+FROM node:18-alpine
+WORKDIR /app
+COPY . .
+RUN yarn install --production
+CMD ["node", "src/index.js"]
+EXPOSE 3000
+```
+
+That image is then uploaded to a registry where it can be distributed
+
+Not 100% reproducibile between separate image builds
+
+Composition of images is difficult
+
+However, massive ecosystem and easier to grok compared Nix
+
+</v-clicks>
+
+---
+
+# Nix vs Docker
+
+<br/>
+
+### Nix
+
+<v-clicks>
+
+Nix solves reproducibility from a first principles approach
+
+By solving package management
+
+Much more efficient in resources as everything is just symlinks and env vars
+
+More composable, a DockerFile can only utilise a single base image to extend from
+
+So, start with a `node` image and then install `rustc` manually
+
+Admittedly it is less user-friendly initially than Docker
+
+And difficult to integrate into the non-nix world
+
+</v-clicks>
+
+---
+layout: center
+---
+
+# Nix vs Docker
+
+<br/>
+
+So which is better?
+
+<v-clicks>
+
+That depends on your use case
+
+IMO both!
+
+```nix
+{ pkgs ? import <nixpkgs> { }
+, pkgsLinux ? import <nixpkgs> { system = "x86_64-linux"; }
+}:
+
+pkgs.dockerTools.buildImage {
+  name = "cowsay-container";
+  config = {
+    Cmd = [ "${pkgsLinux.cowsay}/bin/cowsay" "I'm a container" ];
+  };
+}
+```
+
+</v-clicks>
+
+---
+layout: center
+---
+
+![](/images/reproducible.jpg)
+
+---
+layout: center
+---
+
+# NixOS
+
+---
+
+# NixOS
+
+<br/>
+
+A Linux distribution built on top of the Nix ecosystem
+
+<v-clicks>
+
+The whole OS is totally declarative
+
+From the kernel version to your vimrc or vscode extensions
+
+Very nice features like rollbacks
+
+Entire dependency can be graphed and visualized - `nix-tree`
+
+Everything can be version controlled on github
+
+Nixpkgs provides a "module" system for very succinct setup
+
+I won't digress too much but will show a few examples
+
+</v-clicks>
+
+---
+layout: center
+---
+
+# NixOS
+
+<br/>
+
+How `bluetooth` might be configured:
+
+
+```nix
+{
+  hardware.bluetooth = {
+    enable = true;
+    settings = { General.Enable = "Source,Sink,Media,Socket"; };
+  };
+  services.blueman.enable = true;
+}
+```
+
+---
+layout: center
+---
+
+# NixOS
+
+<br/>
+
+How `geth` might be configured:
+
+
+```nix
+{
+  services.geth = {
+    mainnet = {
+      enable = true;
+      http = {
+        enable = true;
+        apis = [ "net" "eth" "debug" "engine" "admin" ];
+        port = 8545;
+      };
+      authrpc = {
+        enable = true;
+      };
+      metrics.enable = false;
+      syncmode = "full";
+      package = pkgs.unstable.go-ethereum.geth;
+    };
+  };
+}
+```
+
+---
+layout: center
+---
+
+# NixOS
+
+<br/>
+
+How `python` is installed:
+
+```nix
+let
+  pythonPkgs = pkgs.python310.withPackages
+    (p: with p; [ black poetry pip cython pytest nose pyflakes isort ]);
+in {
+  environment.systemPackages = with pkgs; [
+    pythonPkgs
+    python-language-server
+    nodePackages.pyright
+    pipenv
+  ];
+}
+```
