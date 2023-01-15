@@ -32,5 +32,8 @@
         program =
           "${self.packages.${system}.server}/bin/nix-presentation-server";
       };
+
+      devshell.${system} =
+        pkgs.mkShell { buildInputs = with pkgs; [ nodejs yarn ]; };
     };
 }

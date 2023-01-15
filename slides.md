@@ -462,11 +462,11 @@ Which is not untrue
 
 Instead of pure it's more precise to say it's <ins>**hermetic**</ins>
 
-**Pure** in a software context means that some program for a given input will always generate the same output
+**Pure** in this context means that some program for some input will emit the same output
 
-And that not _side-effects_ are created
+And that no _side-effects_ are created
 
-As discussed this is generally true and the desired goal of Nix
+This is generally true and the desired goal of Nix
 
 Hermetic is more accurate
 
@@ -885,7 +885,7 @@ Huge, ~95,000 pkgs (depends which branch)
   </tr>
   <tr v-if="$slidev.nav.clicks >= 4">
     <td>nixos-21.11</td>
-    <td>Current stable, akin to Ubuntu versioning</td>
+    <td>Current stable, bi-yearly releases, akin to Ubuntu LTS examples</td>
   </tr>
   <tr v-if="$slidev.nav.clicks >= 5">
     <td>unstable</td>
@@ -905,7 +905,7 @@ Nixpkgs is just a big attrset of lazy-evaluated calls to `derivation`
 
 <v-clicks>
 
-~95,000 calls to derivation
+ \>95,000 lazy calls to derivation
 
 ```
 {
@@ -945,7 +945,7 @@ layout: two-cols
 <br/>
 
 
-## In essence that's Nix
+## That's Nix fundamentals
 
 <v-clicks>
 
@@ -955,7 +955,7 @@ There are more things to randomly cover:
 
 <v-clicks>
 
-- nix-shell
+- Ephemeral shells
 - Nix flakes
 - Hermetic developer environments
 - CI
@@ -967,7 +967,11 @@ There are more things to randomly cover:
 
 ---
 
-## The nix-shell
+## Ephemeral shells
+
+<br/>
+
+### nix-shell
 
 <v-clicks>
 
@@ -1159,7 +1163,7 @@ nix run .
 
 </div>
 
-<div v-if="$slidev.nav.clicks > 4">
+<div v-if="$slidev.nav.clicks >= 4">
 
 You can also run it remotely
 
@@ -1215,3 +1219,15 @@ nix run github:Padraic-O-Mhuiris/nix-presentation
     };
 }
 ```
+
+---
+layout: center
+---
+
+This last command:
+
+```
+nix run <REMOTE_URL>
+```
+
+turns everything into a 1-click process
