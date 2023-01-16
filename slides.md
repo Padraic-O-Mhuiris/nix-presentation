@@ -19,9 +19,102 @@ How to build software from the future
 
 
 ---
-src: /pages/what_is_nix.md
+layout: center
 ---
 
+# What is Nix?
+
+---
+layout: center
+---
+
+Nix is a _universal_ build system and purely functional package manager
+
+---
+layout: center
+---
+
+It's also a language
+
+```nix
+with import <nixpkgs> {};
+
+stdenv.mkDerivation {
+  name = "hello";
+  src = ./src;
+  buildInputs = [ coreutils gcc ];
+  configurePhase = ''
+    declare -xp
+  '';
+  buildPhase = ''
+    gcc "$src/hello.c" -o ./hello
+  '';
+  installPhase = ''
+    mkdir -p "$out/bin"
+    cp ./hello "$out/bin/"
+  '';
+}
+```
+
+---
+layout: center
+---
+
+Can be used on any "Unix-Like" systems like Mac and Linux
+
+<v-click>
+
+Install it like so:
+
+```bash
+$ sh <(curl -L https://nixos.org/nix/install)
+```
+
+</v-click>
+
+---
+layout: center
+---
+
+Also comes in it's own Linux flavour - NixOS
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/NixOS_logo.svg/1280px-NixOS_logo.svg.png)
+
+---
+layout: center
+---
+
+Largest package collection for any package manager, >95K - [_nixpkgs_](https://github.com/NixOS/nixpkgs)
+
+<img src="https://repology.org/graph/map_repo_size_fresh.svg" class="max-w-full max-h-100" alt="..." />
+
+---
+layout: center
+---
+
+Steep learning curve
+
+<img src="https://discourse.nixos.org/uploads/default/original/2X/f/fef4e7f73fbca41179060500174f1448d16fb8c9.jpeg" class="max-w-full max-h-100" alt="...">
+
+---
+layout: center
+---
+
+But I think it's worth it
+
+
+---
+layout: center
+---
+
+It's core ideas will be how software is developed, built and distributed in the future
+
+
+---
+layout: center
+---
+
+Let's look at those core ideas
 
 ---
 layout: center
@@ -41,7 +134,7 @@ layout: center
 
 - All software is a graph of dependencies
 - This graph is mostly implicit
-- Nix forces this graph to be explicit
+- This graph should be explicit
 
 </v-clicks>
 
@@ -61,14 +154,14 @@ layout: center
 layout: center
 ---
 
-# Four key ideas:
+# Nix in 4 parts:
 
 <v-clicks>
 
 - Store
 - Language
 - Derivation
-- Sandboxing
+- Hermeticity
 
 </v-clicks>
 
@@ -82,15 +175,15 @@ layout: two-cols
 
 <v-clicks>
 
-When nix is installed, a special directory, `/nix/store` is created
+When Nix is installed, `/nix/store` is created
 
-This directory is just a graph database
+This directory is a graph database
 
-Every sub-directory is a node
+Where every sub-directory is a node
 
 <div>
 
-Example:
+Example package:
 
 ```bash
 /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
@@ -98,11 +191,11 @@ Example:
 
 </div>
 
-Inside a **node** are the build artifacts - e.g, the `git` binary
+Build artifacts like the `git` binary are contained in a node
 
 `/nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1/bin/git`
 
-Also, there may be references to paths in other nodes, creating edges/vertices
+Nix uses symlinks to reference paths to other packages which may be required at runtime, creating edges
 
 </v-clicks>
 
@@ -145,13 +238,21 @@ layout: center
 
 <v-clicks>
 
-Every node has a unique hash
+Every node is identified by a unique hash
 
-For a given hash, the contents of that node will always be identical, across machines, platforms, etc
+For a given hash, the contents of that node will always be identical
 
-If the hash differs, then the contents differs
+Across different machines, platforms and architectures
 
-> Note: A node can also be referred to as an `outputPath`, which will be important later
+If a hash is different, then the contents are different
+
+<div>
+
+<br/>
+
+> Note: A node can also sometimes be referred to as an `outputPath` or `outPath`
+
+</div>
 
 </v-clicks>
 
@@ -181,14 +282,61 @@ nix-store --query --graph /nix/store/q1i8hccfgx0al5jhx5n610jwwqa3jijx-git-2.38.1
 
 </v-clicks>
 
+---
+layout: center
+---
+
+# The Nix Derivation
+
+---
+layout: two-cols
+clicks: 2
+---
+
+# The Nix Derivation
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+A derivation is a recipe to build some package
+
+It's just a file of build instructions
+
+<table v-if="$slidev.nav.clicks >= 1">
+  <tr></tr>
+  <tr v-if="$slidev.nav.clicks >= 1">
+    <td>drvPath</td>
+    <td>Recipe <code>.drv</code> file containing build instructions</td>
+  </tr>
+  <tr v-if="$slidev.nav.clicks >= 2">
+    <td>outPath</td>
+    <td>Location of build artifacts</td>
+  </tr>
+</table>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+
+```mermaid {theme: 'dark', scale: 2.5}
+flowchart TD
+drv[drvPath] --> x[outPath]
+```
 
 ---
 layout: two-cols
 ---
 
-# Nix Derivations
+# The Nix Derivation
 
-#### Derivation structure
+### Derivation structure
 
 <br/>
 <br/>
@@ -254,51 +402,8 @@ Derive(
 )
 ```
 
----
-layout: two-cols
-clicks: 2
----
-
-# Nix Derivations
-
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-
-A derivation is a recipe to build some other path in the Nix Store
-
-It's just a file of build instructions
-
-<table v-if="$slidev.nav.clicks >= 1">
-  <tr></tr>
-  <tr v-if="$slidev.nav.clicks >= 1">
-    <td>drvPath</td>
-    <td>Recipe file containing build instructions</td>
-  </tr>
-  <tr v-if="$slidev.nav.clicks >= 2">
-    <td>outPath</td>
-    <td>Location of build artifacts</td>
-  </tr>
-</table>
-
-::right::
-
-<br/>
-<br/>
-<br/>
-<br/>
-
-```mermaid {theme: 'dark', scale: 2.5}
-flowchart TD
-drv[drvPath] --> x[outPath]
-```
-
 
 ---
-
 
 Essentially .drv files are just a fancy json
 
@@ -392,13 +497,13 @@ Hello World!
 layout: two-cols
 ---
 
-## How are the hashes generated then?
+## How are the hashes generated?
 
 <br/>
 
 <v-clicks>
 
-This is particularly low-level so I'm going to keep it simple
+This is low-level so just a simple overview
 
 For a **derivation** hash, it typically is just the sha256 or md5 of the derivation contents
 
@@ -408,12 +513,11 @@ So if we change the version of the bash dependency stated in the derivation, the
 
 Which will propagate a change to the output hash
 
-This turns each unique package node in the Nix Store and it's children dependencies into a merkle-tree structure
+This turns each unique package node in the Nix Store and it's children dependencies into something similar to merkle-tree structures
 
 </v-clicks>
 
 ::right::
-
 
 <br/>
 <br/>
@@ -432,11 +536,21 @@ By this method, we create a unique fingerprint on <ins>how</ins> a piece of soft
 
 <v-clicks>
 
-Not *always* a unique fingerprint on <ins>what</ins> software is built, byte-for-byte equality is not always the case across two separate builds
+Not *always* a unique fingerprint on <ins>what</ins> software is built
 
-However if the `builder` program is deterministic in how it builds the program, it is
+Exact byte-for-byte equality is not always the case across two separate builds
 
-Content-address hashing, which would give this byte-for-byte property, is currently in the Nix development pipeline
+It depends if the `builder` program is deterministic
+
+In other words, store paths are hashes of the **build instructions** not the contents
+
+Nix store paths are **input addressed**
+
+**Content-addressed** solutions are the "holy grail" for Nix
+
+Where a hash of an output path is also available
+
+Currently are being slowly released and should reach wider adoption as time progresses
 
 </v-clicks>
 
@@ -454,21 +568,21 @@ layout: center
 <br/>
 <br/>
 
-Nix is often described as a <ins>pure</ins> functional package manager
+Nix is described as a <ins>pure</ins> functional package manager
 
 <v-clicks>
 
-Which is not untrue
+Which is kinda true
 
 Instead of pure it's more precise to say it's <ins>**hermetic**</ins>
 
-**Pure** in this context means that some program for some input will emit the same output
+**Pure** means where a program or function for some input will emit the same output - deterministic
 
-And that no _side-effects_ are created
+No _side-effects_ are created
 
-This is generally true and the desired goal of Nix
+This is the desired goal of Nix
 
-Hermetic is more accurate
+<ins>Hermetic</ins> is more accurate
 
 </v-clicks>
 
@@ -502,7 +616,7 @@ In software, it means a program which is <ins>fully independent</ins> or <ins>is
 layout: center
 ---
 
-# All Nix builds are hermetic
+# Nix builds are Hermetic
 
 <br/>
 
@@ -518,25 +632,31 @@ The build runtime is executed in a "chrooted" environment
 
 Access to the network and the external host filesystem is restricted (some caveats)
 
-TLDR: something similar to Docker
+"Fixed-output" derivations enable network access to fetch binaries directly
+
+Contents must be validated against a hash stated in the derivation
 
 </v-clicks>
 
 ---
+layout: center
+---
 
 # Dependency closure of `git`
 
-<img src="/images/git_dependency_graph_1.svg" class="max-w-230 max-h-100" alt="...">
+<br/>
+
+<img src="/images/git_dependency_graph_1.svg" class="max-w-220 max-h-100" alt="...">
 
 <v-clicks>
 
-All dependencies are explicitly known
-
-Nothing is machine dependent
+Everything is explicit
 
 Extremely strong guarantees of reproducibility
 
-Entire dependency closure can be copied to another machine (that can execute x86_64-linux binaries)
+Entire dependency closure can be copied to another machine
+
+Provided the same system architecture
 
 </v-clicks>
 
@@ -564,7 +684,7 @@ layout: center
 
 - Once a package derivation has been built somewhere on some machine
 - That graph can be compressed, copied and dumped directly into your nix store - in parallel
-- This makes things extremely fast
+- Building can be done in parallel which makes it extremely fast
 - [Cachix](https://www.cachix.org/) is a binary cache which enable this
 
 </v-clicks>
@@ -740,7 +860,7 @@ layout: center
 
 We talked a little about this already
 
-Pure as in free of side effects
+Pure as in free (almost!) of side effects
 
 </v-clicks>
 
@@ -751,8 +871,8 @@ Pure as in free of side effects
 - no writing to file
 - no output
 - doesn't actually do anything, in the traditional sense
-- Only purpose is to call the `derivation` function
-- The only side-effect as it write's a derivation a path in the nix store
+- <ins>Only purpose is to call the `derivation` function</ins>
+- The only side-effect is that it writes a derivation path in the nix store
 
 </v-clicks>
 
@@ -760,41 +880,40 @@ Pure as in free of side effects
 layout: center
 ---
 
-### The Nix language only does one thing
+# `demo.nix`
 
 <br/>
+
+```nix
+with import <nixpkgs> { };
+
+builtins.derivation {
+  name = "demo";
+  system = builtins.currentSystem;
+  builder = "${pkgs.bash}/bin/bash";
+  args = [
+    "-c"
+    ''
+      echo "Hello World!" > $out
+    ''
+  ];
+}
+
+```
+
+This then can be evaluated using `nix-instantiate`
+
+Resulting in the derivation file we used earlier
+
+---
+layout: center
+---
+
+![](https://i.stack.imgur.com/NqxsO.png)
 
 <v-clicks>
 
-```nix
-derivation {
-  name = "demo";
-  system = "x86_64-linux";
-  builder = "${pkgs.bash}/bin/bash";
-  args = ["-c" "echo \"Hello World!\" > $out"];
-}
-```
-
-When a derivation function like this is evaluated we (roughly) get:
-
-```nix{all|2,3,4,5|6,7|all}
-{
-  name = "demo";
-  system = "x86_64-linux";
-  builder = "${pkgs.bash}/bin/bash";
-  args = ["-c" "echo \"Hello World!\" > $out"];
-  drvPath = "/nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv";
-  outPath = "/nix/store/vy114fkxdsw4fb7ysfp86p8l32z9nc34-demo";
-}
-```
-
-<div>
-
-<br/>
-
 > The Nix language does not do anything except write out derivations, <br/> for which other tooling (`nix-build`) can execute a build
-
-</div>
 
 Evaluation of the Nix language is a separate process of building a Nix derivation
 
@@ -812,7 +931,7 @@ The evaluation of that file will recursively write 100 derivations
 
 And then the derivation (_root_) of that package will then be written
 
-The _root_ derivation can then be called by `nix-build` or the like
+The _root_ derivation can then be called by `nix-build`
 
 That dependency graph is traversed again, recursively building 100 dependencies to their outPaths
 
@@ -1551,3 +1670,32 @@ in {
   ];
 }
 ```
+
+---
+
+# Other areas
+
+<v-clicks>
+
+- Nix Profiles
+- NixOps/nix deployment tooling
+- NixOs Modules
+- Nix CI
+- Nix Secrets management
+- Nixpkgs Overriding Packages
+- Nix builders
+- and so on
+
+</v-clicks>
+
+<v-clicks>
+
+The Nix world is complex, a lot of stuff
+
+But I think it's really innovating
+
+And is a huge leap forward in how we as developers can build reproducibile and reliable systems
+
+Just needs more adoption and more maturity
+
+</v-clicks>
