@@ -1,5 +1,5 @@
 ---
-theme: default
+theme: seriph
 background: https://raw.githubusercontent.com/NixOS/nixos-artwork/c1dc75611042b57a385c80495d3728724c35cfee/wallpapers/nix-wallpaper-nineish.src.svg
 class: "text-center"
 highlighter: shiki
@@ -102,6 +102,26 @@ layout: center
 
 But I think it's worth it
 
+---
+
+# What problems does Nix solve | What does Nix do?
+
+<br/>
+<br/>
+<br/>
+
+<v-clicks>
+
+- Multiple versions of the same package can be installed on your system
+- Dependency Hell is solved, where a package is installed which has dependencies which conflict because they rely on shared packages or libraries of different versions
+- 0 ambiguity on where packages/libraries live on your system
+- Reproducibile environments without virtualisation
+- Binary caching for all software
+- API driven package building
+- Atomic system rollbacks and upgrades (NixOS)
+- System configuration is declarative and shareable (NixOS)
+
+</v-clicks>
 
 ---
 layout: center
@@ -164,6 +184,12 @@ layout: center
 - Hermeticity
 
 </v-clicks>
+
+---
+layout: center
+---
+
+# The Nix Store
 
 ---
 layout: two-cols
@@ -336,6 +362,63 @@ layout: two-cols
 
 # The Nix Derivation
 
+<br/>
+
+Derivations are the product of evaluating Nix expressions
+
+<v-clicks>
+
+Specifically Nix expressions which call the `derivation` function
+
+We will talk about this later
+
+The demo example on the right is a simplified Nix expression
+
+There are multiple ways to evaluate a Nix expression using the tooling
+
+<div>
+The easiest is:
+
+```bash
+$ nix-instantiate demo.nix
+```
+</div>
+
+</v-clicks>
+
+::right::
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+```nix
+with import <nixpkgs> { };
+
+builtins.derivation {
+  name = "demo";
+  system = builtins.currentSystem;
+  builder = "${pkgs.bash}/bin/bash";
+  args = [
+    "-c"
+    ''
+      echo "Hello World!" > $out
+    ''
+  ];
+}
+```
+
+
+---
+layout: two-cols
+---
+
+# The Nix Derivation
+
 ### Derivation structure
 
 <br/>
@@ -383,9 +466,7 @@ layout: two-cols
 <br/>
 <br/>
 
-```bash {all|4|5|6|7|8|9|10,11,12,13,14,15}
-$ cat /nix/store/856p...gdl5-demo.drv
-
+```bash {all|2|3|4|5|6|7|8-13}
 Derive(
   [("out","/nix/store/vy11....nc34-demo","","")],
   [("/nix/store/0lj5...30xs-bash-5.1-p16.drv",["out"])],
@@ -445,18 +526,7 @@ nix show-derivation /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv
 layout: center
 ---
 
-Just like the node it builds, it's transitive closure is also explicitly defined
-
-```bash
-nix-store --query --graph /nix/store/856pm4kv8ddsr0qnbjzprpfm7sbfgdl5-demo.drv \
-  | dot -Tsvg > graph.svg && feh graph.svg
-```
-
-<v-click>
-
 Everything* in the Nix Store, except derivations are created using derivations
-
-</v-click>
 
 ---
 layout: center
@@ -492,6 +562,11 @@ Hello World!
 
 </v-clicks>
 
+---
+layout: center
+---
+
+![](/images/nix_eval_build.svg)
 
 ---
 layout: two-cols
@@ -572,8 +647,6 @@ Nix is described as a <ins>pure</ins> functional package manager
 
 <v-clicks>
 
-Which is kinda true
-
 Instead of pure it's more precise to say it's <ins>**hermetic**</ins>
 
 **Pure** means where a program or function for some input will emit the same output - deterministic
@@ -610,7 +683,8 @@ In software, it means a program which is <ins>fully independent</ins> or <ins>is
 
 ::right::
 
-![](https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Hermes_Ingenui_Pio-Clementino_Inv544.jpg/440px-Hermes_Ingenui_Pio-Clementino_Inv544.jpg)
+![](https://media.istockphoto.com/id/507882363/vector/hermes-greek-god-of-transitions-wood-engraving-published-1878.jpg?s=1024x1024&w=is&k=20&c=pa2gzLTbcYO9Z19p4fId_yhFXkcLKbJ5jJgQ9C_3VWA=
+)
 
 ---
 layout: center
@@ -634,9 +708,55 @@ Access to the network and the external host filesystem is restricted (some cavea
 
 "Fixed-output" derivations enable network access to fetch binaries directly
 
-Contents must be validated against a hash stated in the derivation
-
 </v-clicks>
+
+---
+layout: two-cols
+---
+
+# Fixed-output derivations
+
+<br/>
+
+Sometimes a binary or package may be released as a compressed tarball on github or elsewhere
+
+It is possible to package such a binary in a derivation
+
+The derivation will specify a URL the binary can be fetched from and a hash
+
+The tarball will be hashed and validated against the specified hash
+
+This makes it easier to integrate with the non-nix world
+
+And avoids having to package all software from scratch
+
+But building software from scratch the _**"Nix Way"**_ is better
+
+::right::
+
+<br/>
+<br/>
+<br/>
+
+```nix
+{ pkgs }:
+
+with pkgs;
+stdenv.mkDerivation rec {
+  name = "prysmbeacon";
+  version = "3.1.0";
+  src = fetchurl {
+    url =
+      "https://github.com/prysmaticlabs/prysm/releases/download/v${version}/beacon-chain-v${version}-linux-amd64";
+    sha256 = "f76aed03c207c2e4ade1c1cde47cbc0828bb7fb9b44d5518e6f13a9b39dacc42";
+  };
+  installPhase = ''
+    mkdir $out/bin
+    mv $src $out/bin/prysmbeacon
+  '';
+}
+```
+
 
 ---
 layout: center
@@ -676,16 +796,19 @@ layout: center
 layout: center
 ---
 
-### With Nix any software build/install can be a binary download - period
+### With Nix any software build/install can be a binary download
 
 <br/>
 
 <v-clicks>
 
 - Once a package derivation has been built somewhere on some machine
-- That graph can be compressed, copied and dumped directly into your nix store - in parallel
-- Building can be done in parallel which makes it extremely fast
-- [Cachix](https://www.cachix.org/) is a binary cache which enable this
+- That graph can be compressed, copied and dumped directly into your nix store
+- Everything is "built" in parallel which makes it extremely fast
+- Turns every Nix Store into an automatic binary-caching layer
+- [Cachix/nix-community cache](https://www.cachix.org/) is a binary cache which enable this
+- Can be potentially decentralized using bittorrent
+- Have been some attempts to use IPFS
 
 </v-clicks>
 
@@ -909,15 +1032,10 @@ Resulting in the derivation file we used earlier
 layout: center
 ---
 
-![](https://i.stack.imgur.com/NqxsO.png)
-
-<v-clicks>
 
 > The Nix language does not do anything except write out derivations, <br/> for which other tooling (`nix-build`) can execute a build
 
 Evaluation of the Nix language is a separate process of building a Nix derivation
-
-</v-clicks>
 
 ---
 layout: center
@@ -1077,7 +1195,6 @@ There are more things to randomly cover:
 - Ephemeral shells
 - Nix flakes
 - Hermetic developer environments
-- CI
 - Nix & Docker
 - NixOS
 - ... and many more
@@ -1106,7 +1223,7 @@ nix-shell -p nodejs-16_x
 
 This is very ergonomic for one-time-use of a specific package
 
-But you can utilise a shell.nix file for an automatic 'semi-virtual' environment
+Use a `shell.nix` file for larger and more complex setups
 
 ```nix
 { pkgs ? import <nixpkgs> {} }:
@@ -1126,9 +1243,11 @@ But you can utilise a shell.nix file for an automatic 'semi-virtual' environment
 
 Relatively new-addition to the Nix ecosystem
 
+Prior, what version of nixpkgs needed to build a package was not explicit
+
 Analogous to the role `cargo.toml` and `package.json` serve in a rust or javascript based project
 
-In Nix based workflows, you would specify a `flake.nix`
+In Nix based projects, you would specify a `flake.nix`
 
 Vastly simplifies how nix based projects can be composed
 
@@ -1513,9 +1632,9 @@ Nix solves reproducibility from a first principles approach
 
 By solving package management
 
-Much more efficient in resources as everything is just symlinks and env vars
+No virtualisation so no runtime overhead
 
-More composable, a DockerFile can only utilise a single base image to extend from
+More composable and configurable, a DockerFile can only utilise a single base image to extend from
 
 So, start with a `node` image and then install `rustc` manually
 
@@ -1582,13 +1701,13 @@ The whole OS is totally declarative
 
 From the kernel version to your vimrc or vscode extensions
 
-Very nice features like rollbacks
+Atomic rollbacks and upgrades
 
 Entire dependency can be graphed and visualized - `nix-tree`
 
 Everything can be version controlled on github
 
-Nixpkgs provides a "module" system for very succinct setup
+Nixpkgs provides a "module" system for a transparent and declarative setup
 
 I won't digress too much but will show a few examples
 
@@ -1672,6 +1791,8 @@ in {
 ```
 
 ---
+layout: center
+---
 
 # Other areas
 
@@ -1681,20 +1802,27 @@ in {
 - NixOps/nix deployment tooling
 - NixOs Modules
 - Nix CI
+- Nix Overlays
 - Nix Secrets management
 - Nixpkgs Overriding Packages
 - Nix builders
-- and so on
+- ...... and so on
 
 </v-clicks>
 
-<v-clicks>
+---
+layout: center
+---
 
 The Nix world is complex, a lot of stuff
 
+<v-clicks>
+
+And is slowly maturing out of a research/experimental idea
+
 But I think it's really innovating
 
-And is a huge leap forward in how we as developers can build reproducibile and reliable systems
+It is a huge leap forward in how developers can build reproducibile and reliable systems
 
 Just needs more adoption and more maturity
 
